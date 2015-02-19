@@ -1,5 +1,3 @@
-#!/usr/bin/env python2
-#
 # The MIT License (MIT)
 #
 # Copyright (c) 2015 Anders Steen Christensen
@@ -28,21 +26,49 @@
 #   (2) AS Christensen (2015) https://github.com/andersx/pauli-se
 #
 
+import math
 
-import sys
-from pauli_api import calc_pauli
+def get_coordinates(filename):
+
+    """ Opens a standard XYZ file and returns an array with all
+        hydrogen coordinates.
+    """
+
+    f = open(filename, 'r')
+    lines = f.readlines()
+    f.close()
+
+    hydrogens = []
+
+    for line in lines[2:]:
+        if len(line) < 3:
+            break
+
+        tokens = line.split()
+
+        if tokens[0] == "H":
+
+            hydrogens.append([float(tokens[1]),
+                              float(tokens[2]),
+                              float(tokens[3])])
+
+    return hydrogens
 
 
-if __name__ == "__main__":
+def calc_pauli(filename, SHH, EHH, R0HH):
 
-    # Import some parameters.
-    from parameters import SHH, EHH, R0HH
+    # Get hydrogen positions from XYZ-file.
+    h = get_coordinates(filename)
 
-    # Get XYZ-filename.
-    filename = sys.argv[1]
+    # Reset energy.
+    energy = 0.0
 
-    # Calculate energy, defining filename and parameters.
-    energy = calc_pauli(filename, SHH, EHH, R0HH)
+    # Loop over all unique pairs.
+    for i, a in enumerate(h):
+        for b in h[:i]:
 
-    # Output results in kcal/mol.
-    print "Pauli repulsion: %6.4f kcal/mol" % energy
+            r = math.sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2 + (a[2] - b[2])**2)
+
+            energy += SHH * (1.0 - 1.0 / (1.0 + math.exp(-1.0 * EHH * (r/R0HH - 1.0))))
+
+    return energy
